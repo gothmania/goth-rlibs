@@ -62,7 +62,7 @@ It must contain the following columns:
 | `skip_code` | Skip code; same format as in EpiData, separate multiple skip codes with a semicolon (`;`). |
 | `text_before` | Add lines of text before this line. Use `\n` to create a new line. |
 | `key` | `1` if the field is key but not unique, `2` if the field is key and unique. |
-| `hide` | Specify the condition to hide/unhide which fields. Syntax: `hide/unhide;condition;field_begin-field_end;single_field`. Separate multiple hide codes by a vertical bar (`|`). Example: `unhide;b2=1;b3-b6;b8;c1-c3|hide;b2=2;b7;b9`. |
+| `hide` | Specify the condition to hide/unhide which fields. Syntax: `hide/unhide;condition;field_begin-field_end;single_field`. Separate multiple hide codes by a vertical bar (`\|`). Example: `unhide;b2=1;b3-b6;b8;c1-c3\|hide;b2=2;b7;b9`. |
 | `no_enter` | `1` if the field cannot be entered. |
 | `before_file` | EpiData code before doing anything with a REC file. Use `\n` to create a new line. |
 | `before_record` | EpiData code before doing anything with a record. Use `\n` to create a new line. |
