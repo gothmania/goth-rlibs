@@ -14,6 +14,8 @@ Long Hoang, MD MPH
   - [<span class="toc-section-number">2.2</span>
     `epidata_prepare()`](#epidata_prepare)
 - [<span class="toc-section-number">3</span> Example](#example)
+- [<span class="toc-section-number">4</span> Technical
+  notes](#technical-notes)
 
 # Introduction
 
@@ -523,3 +525,12 @@ epidata_prepare(
 
 
     EpiDate preparation COMPLETED!
+
+# Technical notes
+
+In case you want to know more about the functions in the
+`epidata_prepare.R` file, you can read the documentation of each
+function in the source code. Below is a graph summarizing how the
+functions are called.
+
+![Summary of function calls in epidata_prepare.R](./epidata_prepare.png)
