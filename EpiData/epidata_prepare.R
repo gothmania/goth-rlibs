@@ -491,7 +491,11 @@ gen_skip_codes <- function(d_field) {
 gen_audit_chk <- function(d_field) {
     d_field %>%
         mutate(
-            audit = if_else(type == "id" & format1 == "a", 0, audit),
+            audit = if_else(
+                (type == "id" & format1 == "a") |
+                    (type == "date" & format1 == "t"),
+                0, audit
+            ),
             format_str = if_else(
                 type == "text" & "format1" != "n",
                 gen_fmt_text("n", format2),
@@ -703,6 +707,13 @@ preprocess_validate <- function(d_field, d_nom, incl_guide_str, confirm, comment
     d_field <- d_field %>%
         process_format() %>%
         gen_format_str()
+
+    # Generate validation and instruction for 0/1 binary fields
+    d_field <- d_field %>%
+        mutate(
+            range = if_else(type == "bin" & format1 == "1", "0 1", range),
+            unit = if_else(type == "bin" & format1 == "1", "(0 = False, 1 = True)", unit)
+        )
 
     # Generate guide strings
     if (incl_guide_str) {

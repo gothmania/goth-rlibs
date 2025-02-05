@@ -164,7 +164,7 @@ epidata_prepare(
     a1a  Rapid test                  #   
         0. Negative
         1. Positive
-    a1b  Concentration available     #   
+    a1b  Concentration available     #   (0 = False, 1 = True)
     a1c  Concentration               ###.#   mmol/L
 
     Sample 2
@@ -175,11 +175,11 @@ epidata_prepare(
     a2a  Rapid test                  #   
         0. Negative
         1. Positive
-    a2b  Concentration available     #   
+    a2b  Concentration available     #   (0 = False, 1 = True)
     a2c  Concentration               ###.#   mmol/L
 
     B. CONCLUSION
-    b1  Final diagnosis available    #   
+    b1  Final diagnosis available    #   (0 = False, 1 = True)
     b2  Diagnosis                    ________________________________________________________________________________   
 
     ***
@@ -368,6 +368,7 @@ epidata_prepare(
 
     a1b
       MUSTENTER
+      RANGE 0 1
       BEFORE ENTRY
         a1bo = a1b
       END
@@ -437,6 +438,7 @@ epidata_prepare(
     END
 
     a2b
+      RANGE 0 1
       BEFORE ENTRY
         a2bo = a2b
       END
@@ -465,6 +467,7 @@ epidata_prepare(
     END
 
     b1
+      RANGE 0 1
       BEFORE ENTRY
         b1o = b1
       END
