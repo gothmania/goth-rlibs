@@ -533,4 +533,5 @@ In case you want to know more about the functions in the
 function in the source code. Below is a graph summarizing how the
 functions are called.
 
-![Summary of function calls in epidata_prepare.R](./epidata_prepare.png)
+![Summary of function calls in
+epidata_prepare.R](./epidataprepare_function_calls.png)
