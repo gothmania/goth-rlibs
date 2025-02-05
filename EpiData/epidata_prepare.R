@@ -569,7 +569,7 @@ gen_field_chk <- function(d_field) {
                 ),
                 if_else(db_field == first_id_field, "  TYPE STATUSBAR \"ID = \"\n", ""),
                 if_else(type == "nom", sprintf("  COMMENT LEGAL USE %s\n", nom_list), ""),
-                if_else(required == 1, "  MUSTENTER\n", ""),
+                if_else(required == 1 | required == 2, "  MUSTENTER\n", ""),
                 if_else(!is.na(range), sprintf("  RANGE %s\n", range), ""),
                 if_else(skip_code != "", sprintf("  JUMPS\n%s  END\n", skip_code), ""),
                 if_else(no_enter == 1, "  NOENTER\n", ""),
