@@ -20,6 +20,7 @@ error_msg <- c(
     "HIDE-END"              = "Field name ending the list of hide fields not found:",
     "HIDE-END-BEFORE-BEGIN" = "List of hide fields - the ending field is before the beginning field:",
     "HIDE-PARTS-LT3"        = "Hide string has fewer than 3 parts:",
+    "HIDE-VARS-NOT-EXIST"   = "Variables in hide strings do not exist in the data dictionary:",
     "INVALID-HIDE-ACTION"   = "Invalid action in hide string:"
 )
 
@@ -354,122 +355,159 @@ gen_nom_chk <- function(d_nom) {
 
 ## ---- Functions to process hide codes
 
-get_field_begin_end <- function(db_field_all, field_begin, field_end) {
-    # Validation: make sure that field names are correct
-    pos_begin <- which(db_field_all == field_begin)
-    if (length(pos_begin) == 0) {
-        stop(paste(error_msg["HIDE-BEGIN"], field_begin))
-    }
-
-    pos_end <- which(db_field_all == field_end)
-    if (length(pos_end) == 0) {
-        stop(paste(error_msg["HIDE-END"], field_end))
-    }
-
-    if (pos_begin > pos_end) {
-        stop(paste(error_msg["HIDE-END-BEFORE-BEGIN"], field_begin, "-->", field_end))
-    }
-
-    # Beginning and ending fields are okay. Return the list of fields
-    return(db_field_all[pos_begin:pos_end])
-}
-
-get_field_list <- function(db_field_all, hide_code) {
-    # Split the hide code into parts and process each part
-    map(
-        str_split_1(hide_code, ";"),
-        ~ {
-            # Check if the hide code represents a range
-            if (str_detect(.x, "-")) {
-                field_beginend <- str_split_1(.x, "-")
-
-                # Return the list of fields in the range
-                return(get_field_begin_end(
-                    db_field_all,
-                    str_trim(field_beginend[1]),
-                    str_trim(field_beginend[2])
-                ))
-            }
-
-            # Return the single field
-            return(str_trim(.x))
-        }
-    ) %>%
-        unlist() %>%    # Flatten the list
-        unique()        # Remove duplicates
-}
-
-process_single_hide <- function(db_field_all, hide_code) {
-    hide_parts <- str_split_fixed(hide_code, ";", 3)
-
-    # Validate the hide code
-    if (length(hide_parts) < 3) {
-        stop(paste(error_msg["HIDE-PARTS-LT3"], hide_code))
-    }
-
-    # Get the HIDE / UNHIDE action from the first part
-    action_if <- str_to_lower(hide_parts[1])
-
-    if (action_if != "hide" && action_if != "unhide") {
-        stop(paste(error_msg["INVALID-HIDE-ACTION"], hide_code))
-    }
-
-    action_else <- ifelse(action_if == "hide", "unhide", "hide")
-
-    # Get the conditions from the second part
-    condition <- hide_parts[2]
-
-    # Get the list of fields from the third part
-    field_list <- get_field_list(db_field_all, hide_parts[3])
-
-    # Construct the hide command
-    paste0(
-        sprintf("  IF %s THEN\n", condition),
-        sprintf("    %s %s", action_if, field_list) %>% paste(collapse = "\n") %>% paste0("\n"),
-        ifelse(
-            action_if == "hide",
-            sprintf("    %s = .", field_list) %>% paste(collapse = "\n") %>% paste0("\n"),
-            ""
-        ),
-        "  ELSE\n",
-        sprintf("    %s %s", action_else, field_list) %>% paste(collapse = "\n") %>% paste0("\n"),
-        ifelse(
-            action_else == "hide",
-            sprintf("    %s = .", field_list) %>% paste(collapse = "\n") %>% paste0("\n"),
-            ""
-        ),
-        "  ENDIF"
-    )
-}
-
-process_field_hide <- function(db_field_all, hide_code) {
-    if (is.na(hide_code)) {
+get_vars_seq <- function(start_end_str, db_field_all) {
+    if (!str_detect(start_end_str, "-")) {
         return("")
     }
 
-    hide_str <- map(
-        str_split_1(hide_code, "\\|"),
-        ~ process_single_hide(db_field_all, .x)
-    ) %>%
-        paste(collapse = "\n")
+    start_end_vec <- str_split_1(start_end_str, "-")
+    start <- start_end_vec[1]
+    end <- start_end_vec[2]
+    start_pos <- which(start == db_field_all)
+    end_pos <- which(end == db_field_all)
 
-    if (str_length(hide_str) > 0) {
-        return(sprintf("%s\n", hide_str))
+    if (length(start_pos) != 1) {
+        stop(paste(error_msg["HIDE-BEGIN"], start))
     }
 
-    return("")
+    if (length(end_pos) != 1) {
+        stop(paste(error_msg["HIDE-END"], end))
+    }
+
+    if (start_pos > end_pos) {
+        stop(paste(error_msg["HIDE-END-BEFORE-BEGIN"], start, "-->", end))
+    }
+
+    return(paste(db_field_all[start_pos:end_pos], collapse = ";"))
+}
+
+validate_hide_str <- function(d_hide_str, db_field_all) {
+    # Check if all hide strings have 3 parts
+    chk_missing_parts <- is.na(d_hide_str %>% select(action_if, cond, vars))
+
+    if (sum(sum(chk_missing_parts)) > 0) {
+        vars_with_invalid_hide <- d_hide_str %>%
+            filter(rowSums(chk_missing_parts) > 0) %>%
+            pull(db_field) %>%
+            unique()
+        stop(paste(error_msg["HIDE-PARTS-LT3"], vars_with_invalid_hide))
+    }
+
+    # Check if all hide strings have valid actions
+    chk_invalid_action <- !(d_hide_str$action_if %in% c("HIDE", "UNHIDE"))
+
+    if (sum(chk_invalid_action) > 0) {
+        vars_with_invalid_hide <- d_hide_str %>%
+            filter(chk_invalid_action) %>%
+            pull(db_field) %>%
+            unique()
+        stop(paste(error_msg["INVALID-HIDE-ACTION"], vars_with_invalid_hide))
+    }
+
+    # Check if all variables in the hide strings exist in the data dictionary
+    d_chk_var_exists <- d_hide_str %>%
+        separate_rows(vars, sep = "-")
+
+    chk_var_exists <- !(d_chk_var_exists$vars %in% db_field_all)
+
+    if (sum(chk_var_exists) > 0) {
+        vars_not_exist <- d_chk_var_exists %>%
+            filter(chk_var_exists) %>%
+            pull(db_field) %>%
+            unique()
+        stop(paste(error_msg["HIDE-VARS-NOT-EXIST"], vars_not_exist))
+    }
+}
+
+gen_hide_str <- function(d_field) {
+    db_field_all <- d_field$db_field
+
+    d_working <- d_field %>%
+        select(db_field, hide) %>%
+        filter(!is.na(hide) & hide != "") %>%
+        separate_rows(hide, sep = "[|]") %>%
+        separate(hide, c("action_if", "cond", "vars"), sep = ";", extra = "merge", fill = "right") %>%
+        separate_rows(vars, sep = ";") %>%
+        mutate(action_if = str_to_upper(action_if))
+
+    # Validate the hide strings
+    validate_hide_str(d_working, db_field_all)
+
+    # Process the hide strings
+    d_working <- d_working %>%
+        # If vars contain a sequence of variables, replace it with the actual list of variables
+        rowwise() %>%
+        mutate(
+            vars = if_else(str_detect(vars, "-"), get_vars_seq(vars, db_field_all), vars)
+        ) %>%
+        ungroup() %>%
+        # Create HIDE / UNHIDE commands for each field
+        separate_rows(vars, sep = ";") %>%
+        group_by(db_field, action_if, cond) %>%
+        distinct(vars, keep_all = TRUE) %>%
+        mutate(
+            action_else = if_else(action_if == "HIDE", "UNHIDE", "HIDE"),
+            cmd_if2 = sprintf("    %s %s\n", action_if, vars),
+            cmd_else2 = sprintf("    %s %s\n", action_else, vars),
+            cmd_empty2 = sprintf("    %s = .\n", vars),
+            cmd_if4 = sprintf("      %s %s\n", action_if, vars),
+            cmd_else4 = sprintf("      %s %s\n", action_else, vars),
+            cmd_empty4 = sprintf("      %s = .\n", vars)
+        ) %>%
+        select(-c(vars, action_else)) %>%
+        # Combine the commands for each hide string
+        nest() %>%
+        rowwise() %>%
+        mutate(
+            data = data %>%
+                summarize(
+                    across(everything(), ~ str_c(.x, collapse = ""))
+                ) %>%
+                list()
+        ) %>%
+        unnest(cols = c(data)) %>%
+        ungroup() %>%
+        # Generate IF THEN ELSE commands for each hide string
+        mutate(
+            hide_cmd_2 = if_else(
+                action_if == "HIDE",
+                sprintf("  IF %s THEN\n%s%s  ELSE\n%s  ENDIF\n", cond, cmd_if2, cmd_empty2, cmd_else2),
+                sprintf("  IF %s THEN\n%s  ELSE\n%s%s  ENDIF\n", cond, cmd_if2, cmd_else2, cmd_empty2)
+            ),
+            hide_cmd_4 = if_else(
+                action_if == "HIDE",
+                sprintf("    IF %s THEN\n%s%s    ELSE\n%s    ENDIF\n", cond, cmd_if4, cmd_empty4, cmd_else4),
+                sprintf("    IF %s THEN\n%s    ELSE\n%s%s    ENDIF\n", cond, cmd_if4, cmd_else4, cmd_empty4)
+            )
+        ) %>%
+        select(db_field, hide_cmd_2, hide_cmd_4) %>%
+        # Combine the commands for each field
+        group_by(db_field) %>%
+        nest() %>%
+        rowwise() %>%
+        mutate(
+            data = data %>%
+                summarize(
+                    across(everything(), ~ str_c(.x, collapse = ""))
+                ) %>%
+                list()
+        ) %>%
+        unnest(cols = c(data)) %>%
+        ungroup()
+
+    left_join(d_field, d_working, by = "db_field") %>%
+        mutate(
+            hide_cmd_2 = replace_na(hide_cmd_2, ""),
+            hide_cmd_4 = replace_na(hide_cmd_4, "")
+        )
 }
 
 gen_hide_chk <- function(d_field) {
     d_field %>%
-        rowwise() %>%
+        gen_hide_str() %>%
         mutate(
-            hide_str = process_field_hide(d_field$db_field, hide)
-        ) %>%
-        ungroup() %>%
-        mutate(
-            before_record = paste0(before_record, hide_str),
-            after_entry = paste0(after_entry, hide_str),
+            before_record = paste0(before_record, hide_cmd_2),
+            after_entry = paste0(after_entry, hide_cmd_4),
             .keep = "unused"
         )
 }
