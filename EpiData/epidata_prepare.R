@@ -38,7 +38,7 @@ format_default <- c(
 
 # Pattern of the first part of the format string (for validation)
 format1_pattern <- c(
-    "id"    = "[ant]",
+    "id"    = "^[ant]$",
     "text"  = "^[aen]$",
     "date"  = "^[nt]$",
     "bin"   = "^[1y]$",
@@ -68,7 +68,7 @@ format2_default <- c(
 
 # Date formats
 date_format <- c("dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd")
-
+date_format2 <- c("dmy", "mdy", "ymd")
 
 ### --------- FUNCTIONS
 
@@ -228,7 +228,7 @@ gen_fmt_text <- function(format1, format2) {
 gen_fmt_date <- function(format1, format2) {
     switch(format1,
         n = sprintf("<%s>", date_format[format2]),
-        t = sprintf("<Today-%s>", date_format[format2])
+        t = sprintf("<Today-%s>", date_format2[format2])
     )
 }
 
@@ -248,7 +248,7 @@ gen_fmt <- function(type, format1, format2) {
             t = gen_fmt_text("n", format2)
         ),
         "text" = gen_fmt_text(format1, format2),
-        "date" = gen_fmt_date(format2, format2),
+        "date" = gen_fmt_date(format1, format2),
         "bin" = switch(format1,
             "1" = "#",
             y = "<Y>"
@@ -423,13 +423,22 @@ process_single_hide <- function(db_field_all, hide_code) {
     field_list <- get_field_list(db_field_all, hide_parts[3])
 
     # Construct the hide command
-    paste(
-        sprintf("  IF %s THEN", condition),
-        sprintf("    %s %s", action_if, field_list) %>% paste(collapse = "\n"),
-        "  ELSE",
-        sprintf("    %s %s", action_else, field_list) %>% paste(collapse = "\n"),
-        "  ENDIF",
-        sep = "\n"
+    paste0(
+        sprintf("  IF %s THEN\n", condition),
+        sprintf("    %s %s", action_if, field_list) %>% paste(collapse = "\n") %>% paste0("\n"),
+        ifelse(
+            action_if == "hide",
+            sprintf("    %s = .", field_list) %>% paste(collapse = "\n") %>% paste0("\n"),
+            ""
+        ),
+        "  ELSE\n",
+        sprintf("    %s %s", action_else, field_list) %>% paste(collapse = "\n") %>% paste0("\n"),
+        ifelse(
+            action_else == "hide",
+            sprintf("    %s = .", field_list) %>% paste(collapse = "\n") %>% paste0("\n"),
+            ""
+        ),
+        "  ENDIF"
     )
 }
 
@@ -594,7 +603,8 @@ gen_field_chk <- function(d_field) {
             )
         ) %>%
         pull(chk_str) %>%
-        paste(collapse = "\n")
+        paste(collapse = "\n") %>%
+        paste0("\n")
 }
 
 
@@ -630,8 +640,15 @@ gen_after_file_chk <- function(d_field) {
 
 
 # Generate BEFORE RECORD code
-gen_before_record_chk <- function(d_field) {
+gen_before_record_chk <- function(d_field, incl_audit) {
     before_record_str <- collapse_str(d_field, "before_record")
+
+    if (incl_audit) {
+        before_record_str <- paste0(
+            "  DEFINE rec #####\n  rec = RECORDNUMBER\n",
+            before_record_str
+        )
+    }
 
     if (str_length(before_record_str) > 0) {
         return(paste0("BEFORE RECORD\n", before_record_str, "END\n\n"))
@@ -654,11 +671,11 @@ gen_after_record_chk <- function(d_field) {
 
 
 # Write CHK file
-write_chk <- function(d_field, d_nom, filename, confirm, comment) {
+write_chk <- function(d_field, d_nom, filename, confirm, comment, incl_audit) {
     chk_str <- paste0(
         gen_nom_chk(d_nom),
         gen_before_file_chk(d_field, confirm, comment),
-        gen_before_record_chk(d_field),
+        gen_before_record_chk(d_field, incl_audit),
         gen_field_chk(d_field),
         gen_after_record_chk(d_field),
         gen_after_file_chk(d_field)
@@ -753,7 +770,7 @@ epidata_prepare <- function(
     d_field <- preprocess_validate(d_field, d_nom, incl_guide_str, confirm, comment, incl_audit)
 
     write_qes(d_field, filename, title)
-    write_chk(d_field, d_nom, filename, confirm, comment)
+    write_chk(d_field, d_nom, filename, confirm, comment, incl_audit)
 
-    cat("\n\nEpiDate preparation COMPLETED!\n")
+    cat("\n\nEpiData preparation COMPLETED!\n")
 }
