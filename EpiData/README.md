@@ -34,10 +34,8 @@ using the function:
 source("epidata_prepare.R")
 ```
 
-**Detailed instruction (in Vietnamese)**
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/rg2Jeb8Bdgg?si=mF5H_m0IPvY88w7X" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen>
-</iframe>
+**Detailed instruction (in Vietnamese)**:
+[LINK](https://youtu.be/rg2Jeb8Bdgg)
 
 # Description
 
