@@ -188,7 +188,7 @@ epidata_prepare(
     entry  Entry                     <A                   >   
 
     dateentry  Entry date            <dd/mm/yyyy>   
-    datemodi  Date modified          <dd/mm/yyyy>   
+    datemodi  Date modified          <Today-dmy>   
     THE END
 
     Writing CHK file...
@@ -203,6 +203,8 @@ epidata_prepare(
     END
 
     BEFORE RECORD
+      DEFINE rec #####
+      rec = RECORDNUMBER
       DEFINE ido _____
       ido = id
       DEFINE nameo ______________________________
@@ -213,9 +215,11 @@ epidata_prepare(
         unhide a1a
       ELSE
         hide a1a
+        a1a = .
       ENDIF
       IF a1 = . THEN
         hide a2
+        a2 = .
       ELSE
         unhide a2
       ENDIF
@@ -223,10 +227,9 @@ epidata_prepare(
       a1o = a1
       IF a1a = 1 THEN
         unhide a1b
-        unhide a1c
       ELSE
         hide a1b
-        hide a1c
+        a1b = .
       ENDIF
       DEFINE a1ao #
       a1ao = a1a
@@ -234,6 +237,7 @@ epidata_prepare(
         unhide a1c
       ELSE
         hide a1c
+        a1c = .
       ENDIF
       DEFINE a1bo #
       a1bo = a1b
@@ -247,6 +251,9 @@ epidata_prepare(
         hide a2a
         hide a2b
         hide a2c
+        a2a = .
+        a2b = .
+        a2c = .
       ENDIF
       DEFINE a2o #
       a2o = a2
@@ -256,6 +263,8 @@ epidata_prepare(
       ELSE
         hide a2b
         hide a2c
+        a2b = .
+        a2c = .
       ENDIF
       DEFINE a2ao #
       a2ao = a2a
@@ -263,6 +272,7 @@ epidata_prepare(
         unhide a2c
       ELSE
         hide a2c
+        a2c = .
       ENDIF
       DEFINE a2bo #
       a2bo = a2b
@@ -272,6 +282,7 @@ epidata_prepare(
         unhide b2
       ELSE
         hide b2
+        b2 = .
       ENDIF
       DEFINE b1o #
       b1o = b1
@@ -336,9 +347,11 @@ epidata_prepare(
         unhide a1a
       ELSE
         hide a1a
+        a1a = .
       ENDIF
       IF a1 = . THEN
         hide a2
+        a2 = .
       ELSE
         unhide a2
       ENDIF
@@ -357,10 +370,9 @@ epidata_prepare(
       AFTER ENTRY
       IF a1a = 1 THEN
         unhide a1b
-        unhide a1c
       ELSE
         hide a1b
-        hide a1c
+        a1b = .
       ENDIF
         IF (a1ao <> a1a) AND (rec <> -1) THEN
           WRITENOTE "Value changed from @a1ao to @a1a"
@@ -379,6 +391,7 @@ epidata_prepare(
         unhide a1c
       ELSE
         hide a1c
+        a1c = .
       ENDIF
         IF (a1bo <> a1b) AND (rec <> -1) THEN
           WRITENOTE "Value changed from @a1bo to @a1b"
@@ -401,6 +414,7 @@ epidata_prepare(
 
     a2
       COMMENT LEGAL USE quality
+      MUSTENTER
       BEFORE ENTRY
         a2o = a2
       END
@@ -413,6 +427,9 @@ epidata_prepare(
         hide a2a
         hide a2b
         hide a2c
+        a2a = .
+        a2b = .
+        a2c = .
       ENDIF
         IF (a2o <> a2) AND (rec <> -1) THEN
           WRITENOTE "Value changed from @a2o to @a2"
@@ -432,6 +449,8 @@ epidata_prepare(
       ELSE
         hide a2b
         hide a2c
+        a2b = .
+        a2c = .
       ENDIF
         IF (a2ao <> a2a) AND (rec <> -1) THEN
           WRITENOTE "Value changed from @a2ao to @a2a"
@@ -449,6 +468,7 @@ epidata_prepare(
         unhide a2c
       ELSE
         hide a2c
+        a2c = .
       ENDIF
         IF (a2bo <> a2b) AND (rec <> -1) THEN
           WRITENOTE "Value changed from @a2bo to @a2b"
@@ -478,6 +498,7 @@ epidata_prepare(
         unhide b2
       ELSE
         hide b2
+        b2 = .
       ENDIF
         IF (b1o <> b1) AND (rec <> -1) THEN
           WRITENOTE "Value changed from @b1o to @b1"
@@ -515,6 +536,7 @@ epidata_prepare(
     datemodi
       NOENTER
     END
+
     AFTER RECORD
       IF a2 = . THEN
         HELP "Field a2 cannot be empty." TYPE=ERROR
@@ -524,7 +546,7 @@ epidata_prepare(
 
 
 
-    EpiDate preparation COMPLETED!
+    EpiData preparation COMPLETED!
 
 # Technical notes
 
