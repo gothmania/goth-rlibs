@@ -456,17 +456,13 @@ gen_hide_str <- function(d_field) {
         ) %>%
         select(-c(vars, action_else)) %>%
         # Combine the commands for each hide string
-        nest() %>%
-        rowwise() %>%
-        mutate(
-            data = data %>%
-                summarize(
-                    across(everything(), ~ str_c(.x, collapse = ""))
-                ) %>%
-                list()
+        summarize(
+            across(
+                everything(),
+                ~ paste(.x, collapse = "")
+            ),
+            .groups = "drop"
         ) %>%
-        unnest(cols = c(data)) %>%
-        ungroup() %>%
         # Generate IF THEN ELSE commands for each hide string
         mutate(
             hide_cmd_2 = if_else(
@@ -483,17 +479,13 @@ gen_hide_str <- function(d_field) {
         select(db_field, hide_cmd_2, hide_cmd_4) %>%
         # Combine the commands for each field
         group_by(db_field) %>%
-        nest() %>%
-        rowwise() %>%
-        mutate(
-            data = data %>%
-                summarize(
-                    across(everything(), ~ str_c(.x, collapse = ""))
-                ) %>%
-                list()
-        ) %>%
-        unnest(cols = c(data)) %>%
-        ungroup()
+        summarize(
+            across(
+                everything(),
+                ~ paste(.x, collapse = "")
+            ),
+            .groups = "drop"
+        )
 
     left_join(d_field, d_working, by = "db_field") %>%
         mutate(
